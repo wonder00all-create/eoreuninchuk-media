@@ -1,0 +1,31 @@
+name: 인스타 예약 게시
+
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"   # 15분마다 (UTC 기준이지만 '시간 된 것'만 올리므로 상관없음)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: insta-post
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: 시간 된 예약 올리기
+        env:
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+        run: python3 cloud/post_due.py
+      - name: 결과 기록
+        if: always()
+        run: |
+          git config user.name "insta-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add schedule/queue.json
+          git diff --cached --quiet || (git commit -m "게시 결과 기록" && git pull --rebase && git push)
